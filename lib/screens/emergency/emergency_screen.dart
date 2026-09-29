@@ -168,7 +168,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
               onPressed: () {
                 ref.read(emergencyProvider.notifier).simulateReceiveEmergency(
                       text: 'Medical emergency. Immediate assistance required.',
-                      sender: 'iTantra-Rescue-01',
+                      sender: 'TACTICAL_PEER',
                     );
               },
             ),
@@ -435,7 +435,7 @@ class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
   Widget _buildReceivedState(EmergencyStateModel emergency) {
     final msg = emergency.receivedEmergencyMessage;
     final text = msg?.text ?? 'Medical emergency. Immediate assistance required.';
-    final sender = msg?.sender ?? 'iTantra-Rescue-01';
+    final sender = msg?.sender ?? 'TACTICAL_PEER';
 
     return Padding(
       key: const ValueKey('emergency_received'),

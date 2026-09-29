@@ -39,6 +39,12 @@ dependencies:
   google_fonts: ^8.2.1
   intl: ^0.20.3
   uuid: ^4.6.0
+  http: ^1.6.0
+  web_socket_channel: ^3.0.3
+  speech_to_text: ^7.5.0
+  flutter_tts: ^4.2.5
+  geolocator: ^14.1.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

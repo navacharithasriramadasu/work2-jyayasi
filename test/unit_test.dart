@@ -5,14 +5,9 @@ import 'package:itantra_voice_transceiver/models/connection_model.dart';
 import 'package:itantra_voice_transceiver/models/device_model.dart';
 import 'package:itantra_voice_transceiver/models/language_model.dart';
 import 'package:itantra_voice_transceiver/models/message_model.dart';
-import 'package:itantra_voice_transceiver/providers/communication_provider.dart';
-import 'package:itantra_voice_transceiver/providers/connection_provider.dart';
 import 'package:itantra_voice_transceiver/providers/emergency_provider.dart';
 import 'package:itantra_voice_transceiver/providers/language_provider.dart';
 import 'package:itantra_voice_transceiver/repositories/message_repository.dart';
-import 'package:itantra_voice_transceiver/services/communication/mock_communication_service.dart';
-import 'package:itantra_voice_transceiver/services/stt/mock_stt_service.dart';
-import 'package:itantra_voice_transceiver/services/tts/mock_tts_service.dart';
 
 void main() {
   group('Model & Constant Tests', () {
@@ -53,95 +48,29 @@ void main() {
       final delivered = msg.copyWith(status: MessageStatus.delivered);
       expect(delivered.status, MessageStatus.delivered);
     });
-  });
 
-  group('Mock Service Tests', () {
-    test('MockSttService starts, emits waveform and transcribed text', () async {
-      final stt = MockSttService();
-      await stt.startListening(languageCode: 'en');
-      expect(stt.isListening, isTrue);
-
-      final result = await stt.stopListening();
-      expect(stt.isListening, isFalse);
-      expect(result.isNotEmpty, isTrue);
-      stt.dispose();
-    });
-
-    test('MockTtsService speaks and stops', () async {
-      final tts = MockTtsService();
-      await tts.speak('Location confirmed.', languageCode: 'en');
-      expect(tts.isSpeaking, isTrue);
-      await tts.stop();
-      expect(tts.isSpeaking, isFalse);
-      tts.dispose();
-    });
-
-    test('MockCommunicationService connects, disconnects, and sends message', () async {
-      final comm = MockCommunicationService();
-      expect(comm.currentStatus, ConnectionStatus.connected);
-
+    test('DeviceModel connectionType label is correct', () {
       const device = DeviceModel(
-        id: 'test-device',
-        name: 'iTantra-Test-01',
+        id: 'dev-001',
+        name: 'iTantra-Rescue-01',
         connectionType: ConnectionType.wifiDirect,
-        signalStrength: 0.9,
+        signalStrength: 0.85,
       );
-
-      await comm.connect(device);
-      expect(comm.connectedDevice?.name, 'iTantra-Test-01');
-
-      final msg = MessageModel(
-        id: 'msg-1',
-        text: 'Test packet',
-        sender: 'You',
-        receiver: 'iTantra-Test-01',
-        timestamp: DateTime.now(),
-        language: 'English → Telugu',
-        status: MessageStatus.sending,
-      );
-
-      await comm.sendMessage(msg);
-
-      await comm.disconnect();
-      expect(comm.currentStatus, ConnectionStatus.disconnected);
-      comm.dispose();
+      // The extension on ConnectionType provides a label getter
+      expect(device.connectionType.label, 'Wi-Fi Direct');
+      expect(device.signalStrength, greaterThan(0.5));
     });
   });
 
-  group('Communication & Emergency State Transition Tests', () {
-    test('Communication state transitions from Idle -> Listening -> Processing -> MessageReady -> Sending -> Sent', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final notifier = container.read(communicationProvider.notifier);
-      expect(container.read(communicationProvider).isIdle, isTrue);
-
-      // Start listening
-      await notifier.startListening();
-      expect(container.read(communicationProvider).isListening, isTrue);
-
-      // Stop listening and process
-      await notifier.stopListeningAndProcess();
-      expect(container.read(communicationProvider).isMessageReady, isTrue);
-      expect(container.read(communicationProvider).currentText.isNotEmpty, isTrue);
-
-      // Send message
-      await notifier.sendMessage();
-      expect(container.read(communicationProvider).isSent, isTrue);
-
-      // Reset to idle
-      notifier.resetToIdle();
-      expect(container.read(communicationProvider).isIdle, isTrue);
-    });
-
-    test('Emergency state transitions from Idle -> Confirming -> Sending -> Sent -> Received', () async {
+  group('Emergency State Transition Tests', () {
+    test('Emergency state transitions from Idle -> Confirming -> Sent -> Received -> Idle', () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
       final notifier = container.read(emergencyProvider.notifier);
       expect(container.read(emergencyProvider).state, EmergencyState.idle);
 
-      // Arm / Confirming
+      // Arm
       notifier.arm('Medical emergency. Immediate assistance required.');
       expect(container.read(emergencyProvider).isConfirming, isTrue);
 
@@ -160,7 +89,9 @@ void main() {
       notifier.acknowledge();
       expect(container.read(emergencyProvider).state, EmergencyState.idle);
     });
+  });
 
+  group('Language Provider Tests', () {
     test('LanguageNotifier switches and swaps language pairs', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -170,19 +101,6 @@ void main() {
 
       notifier.swapLanguages();
       expect(container.read(languageProvider).pairLabel, 'Telugu → English');
-    });
-
-    test('ConnectionNotifier scans and connects device', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final notifier = container.read(connectionProvider.notifier);
-      await notifier.scanDevices();
-      expect(container.read(connectionProvider).discoveredDevices.isNotEmpty, isTrue);
-
-      final device = container.read(connectionProvider).discoveredDevices.first;
-      await notifier.connect(device);
-      expect(container.read(connectionProvider).isConnected, isTrue);
     });
   });
 

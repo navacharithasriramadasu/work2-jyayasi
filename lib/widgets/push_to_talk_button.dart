@@ -5,7 +5,8 @@ import '../core/theme/app_typography.dart';
 import '../models/connection_model.dart';
 
 /// Large circular tactical Push-to-Talk button.
-/// Supports idle, listening, processing, and disabled states.
+/// Uses GestureDetector with onPanDown/onPanEnd to correctly detect hold gestures
+/// without conflicting tap vs long-press events.
 class PushToTalkButton extends StatefulWidget {
   final CommunicationState state;
   final double soundLevel;
@@ -59,7 +60,7 @@ class _PushToTalkButtonState extends State<PushToTalkButton>
   bool get _isProcessing => widget.state == CommunicationState.processing;
 
   void _handlePressDown() {
-    if (!widget.isEnabled || _isProcessing) return;
+    if (!widget.isEnabled || _isProcessing || _isPressedLocally) return;
     HapticFeedback.heavyImpact();
     setState(() => _isPressedLocally = true);
     widget.onHoldStart();
@@ -77,12 +78,11 @@ class _PushToTalkButtonState extends State<PushToTalkButton>
     return Semantics(
       button: true,
       label: 'Push to talk. Hold to speak, release to send.',
-      child: GestureDetector(
-        onTapDown: (_) => _handlePressDown(),
-        onTapUp: (_) => _handlePressUp(),
-        onTapCancel: _handlePressUp,
-        onLongPressStart: (_) => _handlePressDown(),
-        onLongPressEnd: (_) => _handlePressUp(),
+      // Use Listener (raw pointer events) to avoid tap/long-press conflicts
+      child: Listener(
+        onPointerDown: (_) => _handlePressDown(),
+        onPointerUp: (_) => _handlePressUp(),
+        onPointerCancel: (_) => _handlePressUp(),
         child: AnimatedBuilder(
           animation: _pulseAnimation,
           builder: (context, child) {
@@ -115,7 +115,6 @@ class _PushToTalkButtonState extends State<PushToTalkButton>
                         spreadRadius: _isListening ? 4 : 1,
                       ),
                   ],
-                  // Subtle dark cyan to blue gradient as specified
                   gradient: widget.isEnabled
                       ? RadialGradient(
                           center: Alignment.center,
@@ -202,7 +201,9 @@ class _PushToTalkButtonState extends State<PushToTalkButton>
                             ? 'Release to send'
                             : (_isProcessing
                                 ? 'Local inference'
-                                : 'Release to send'),
+                                : !widget.isEnabled
+                                    ? 'Not connected'
+                                    : 'Hold to record'),
                         style: AppTypography.supporting.copyWith(
                           fontSize: 11,
                           color: !widget.isEnabled

@@ -6,13 +6,7 @@ import '../services/device/device_discovery_service.dart';
 class DeviceRepository {
   final DeviceDiscoveryService discoveryService;
 
-  DeviceModel? _connectedDevice = const DeviceModel(
-    id: 'device-rescue-01',
-    name: 'iTantra-Rescue-01',
-    connectionType: ConnectionType.wifiDirect,
-    signalStrength: 0.95,
-    isConnected: true,
-  );
+  DeviceModel? _connectedDevice;
 
   final _deviceListController = StreamController<List<DeviceModel>>.broadcast();
 

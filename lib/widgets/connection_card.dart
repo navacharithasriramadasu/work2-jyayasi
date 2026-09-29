@@ -88,7 +88,7 @@ class ConnectionCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       isConnected
-                          ? (device?.name ?? 'iTantra-Rescue-01')
+                          ? (device?.name ?? 'COMMAND_NET (434.25 MHz)')
                           : 'No Device Paired',
                       style: AppTypography.screenTitle.copyWith(
                         fontSize: 18,

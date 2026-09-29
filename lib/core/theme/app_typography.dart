@@ -58,6 +58,14 @@ class AppTypography {
         height: 1.4,
       );
 
+  static TextStyle get bodySmall => GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.1,
+        color: AppColors.secondaryText,
+        height: 1.4,
+      );
+
   static TextStyle get supporting => GoogleFonts.inter(
         fontSize: 12,
         fontWeight: FontWeight.w400,

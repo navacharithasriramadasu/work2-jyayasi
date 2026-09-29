@@ -152,16 +152,46 @@ class CommunicationNotifier extends Notifier<CommunicationStateModel> {
 
     // Animate pipeline steps (Pause detection -> local STT -> preparing message)
     state = state.copyWith(processingStep: 1, currentText: text);
-    await Future.delayed(const Duration(milliseconds: 350));
+    await Future.delayed(const Duration(milliseconds: 200));
     state = state.copyWith(processingStep: 2);
-    await Future.delayed(const Duration(milliseconds: 350));
+    await Future.delayed(const Duration(milliseconds: 200));
     state = state.copyWith(processingStep: 3);
-    await Future.delayed(const Duration(milliseconds: 250));
+    await Future.delayed(const Duration(milliseconds: 150));
 
-    // Transition to messageReady state
+    final trimmedText = text.trim();
+
+    if (trimmedText.isEmpty) {
+      // No speech captured — return to idle with feedback
+      state = state.copyWith(
+        state: CommunicationState.idle,
+        currentText: '',
+        interimHypothesis: '',
+        soundLevel: 0.0,
+        processingStep: 0,
+        errorMessage: 'No speech detected. Hold the button and speak clearly.',
+      );
+      return;
+    }
+
+    // Transition to messageReady state with actual captured speech
     state = state.copyWith(
       state: CommunicationState.messageReady,
-      currentText: text.isNotEmpty ? text : 'Send the location to the rescue team.',
+      currentText: trimmedText,
+      errorMessage: null,
+    );
+  }
+
+  /// Update active message text dynamically (allows manual edit or text input)
+  void updateText(String newText) {
+    state = state.copyWith(currentText: newText);
+  }
+
+  /// Prepare direct text message for transmission without voice capture
+  void prepareCustomText(String text) {
+    if (text.trim().isEmpty) return;
+    state = state.copyWith(
+      state: CommunicationState.messageReady,
+      currentText: text.trim(),
     );
   }
 
@@ -179,14 +209,13 @@ class CommunicationNotifier extends Notifier<CommunicationStateModel> {
   }
 
   /// Send message as compact text over Wi-Fi Direct / Bluetooth
-  Future<void> sendMessage() async {
+  Future<void> sendMessage([String? explicitText]) async {
     final lang = ref.read(languageProvider);
     final conn = ref.read(connectionProvider);
-    final remoteDevice = conn.connectedDevice?.name ?? 'iTantra-Rescue-01';
+    final remoteDevice = conn.connectedDevice?.name ?? 'TACTICAL_NET';
 
-    final textToSend = state.currentText.isNotEmpty
-        ? state.currentText
-        : 'Send the location to the rescue team.';
+    final textToSend = (explicitText ?? state.currentText).trim();
+    if (textToSend.isEmpty) return;
 
     final message = MessageModel(
       id: _uuid.v4(),
@@ -222,13 +251,6 @@ class CommunicationNotifier extends Notifier<CommunicationStateModel> {
       state: CommunicationState.sent,
       activeMessage: deliveredMessage,
     );
-
-    // Auto-schedule realistic remote transceiver response for interactive demo
-    ref.read(demoSimulationServiceProvider).scheduleSimulatedRemoteResponse(
-          promptResponse: 'Message received. Location confirmed. Stand by.',
-          senderName: remoteDevice,
-          languagePair: '${lang.receiverLanguage.englishName} → ${lang.senderLanguage.englishName}',
-        );
   }
 
   /// Speak again: returns to listening or idle

@@ -1,36 +1,71 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repositories/device_repository.dart';
 import '../repositories/message_repository.dart';
+import '../services/api/api_service.dart';
+import '../services/communication/backend_communication_service.dart';
 import '../services/communication/communication_service.dart';
-import '../services/communication/demo_simulation_service.dart';
-import '../services/communication/mock_communication_service.dart';
+import '../services/device/backend_device_discovery_service.dart';
 import '../services/device/device_discovery_service.dart';
-import '../services/device/mock_device_discovery_service.dart';
-import '../services/stt/mock_stt_service.dart';
+import '../services/location/location_service.dart';
+import '../services/settings/device_settings_service.dart';
+import '../services/stt/device_stt_service.dart';
 import '../services/stt/stt_service.dart';
-import '../services/tts/mock_tts_service.dart';
+import '../services/tts/device_tts_service.dart';
 import '../services/tts/tts_service.dart';
+import '../services/websocket/transceiver_websocket_service.dart';
+
+final locationServiceProvider = Provider<LocationService>((ref) {
+  final service = LocationService();
+  service.updateCurrentLocation();
+  return service;
+});
+
+final deviceSettingsServiceProvider = Provider<DeviceSettingsService>((ref) {
+  final service = DeviceSettingsService();
+  service.init();
+  return service;
+});
+
+final apiServiceProvider = Provider<ApiService>((ref) {
+  final location = ref.watch(locationServiceProvider);
+  final service = ApiService(locationService: location);
+  ref.onDispose(() => service.dispose());
+  return service;
+});
+
+final webSocketServiceProvider = Provider<TransceiverWebSocketService>((ref) {
+  final location = ref.watch(locationServiceProvider);
+  final service = TransceiverWebSocketService(locationService: location);
+  ref.onDispose(() => service.dispose());
+  return service;
+});
 
 final sttServiceProvider = Provider<SttService>((ref) {
-  final service = MockSttService();
+  final service = DeviceSttService();
   ref.onDispose(() => service.dispose());
   return service;
 });
 
 final ttsServiceProvider = Provider<TtsService>((ref) {
-  final service = MockTtsService();
+  final service = DeviceTtsService();
   ref.onDispose(() => service.dispose());
   return service;
 });
 
 final communicationServiceProvider = Provider<CommunicationService>((ref) {
-  final service = MockCommunicationService();
+  final api = ref.watch(apiServiceProvider);
+  final ws = ref.watch(webSocketServiceProvider);
+  final service = BackendCommunicationService(
+    apiService: api,
+    wsService: ws,
+  );
   ref.onDispose(() => service.dispose());
   return service;
 });
 
 final deviceDiscoveryServiceProvider = Provider<DeviceDiscoveryService>((ref) {
-  final service = MockDeviceDiscoveryService();
+  final api = ref.watch(apiServiceProvider);
+  final service = BackendDeviceDiscoveryService(apiService: api);
   ref.onDispose(() => service.dispose());
   return service;
 });
@@ -46,13 +81,4 @@ final deviceRepositoryProvider = Provider<DeviceRepository>((ref) {
   final repo = DeviceRepository(discoveryService: discovery);
   ref.onDispose(() => repo.dispose());
   return repo;
-});
-
-final demoSimulationServiceProvider = Provider<DemoSimulationService>((ref) {
-  final commService = ref.watch(communicationServiceProvider) as MockCommunicationService;
-  final ttsService = ref.watch(ttsServiceProvider);
-  return DemoSimulationService(
-    communicationService: commService,
-    ttsService: ttsService,
-  );
 });

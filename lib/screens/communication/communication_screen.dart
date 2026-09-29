@@ -63,6 +63,21 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
     final conn = ref.watch(connectionProvider);
     final lang = ref.watch(languageProvider);
 
+    // Show snackbar for any error feedback (e.g., no speech detected)
+    ref.listen<CommunicationStateModel>(communicationProvider, (prev, next) {
+      if (next.errorMessage != null && next.errorMessage != prev?.errorMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: const Color(0xFF1A2E3A),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    });
+
     return AppScaffold(
       title: 'Walkie-Talkie',
       showBack: true,
@@ -79,21 +94,9 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
           ),
         ),
       ],
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: _buildCurrentStateView(comm, conn, lang),
-                ),
-              ),
-            ),
-          );
-        },
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        child: _buildCurrentStateView(comm, conn, lang),
       ),
     );
   }
@@ -128,10 +131,11 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
     ConnectionStateModel conn,
     LanguageStateModel lang,
   ) {
-    return Padding(
+    return SingleChildScrollView(
       key: const ValueKey('idle_state'),
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+      padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header Peer & Language Card
           Container(
@@ -151,7 +155,7 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          conn.connectedDevice?.name ?? 'iTantra-Rescue-01',
+                          conn.connectedDevice?.name ?? 'COMMAND_NET (434.25 MHz)',
                           style: AppTypography.supportingSecondary.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -173,7 +177,7 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
               ],
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 36),
 
           // Instructions
           Text(
@@ -183,6 +187,7 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
               fontWeight: FontWeight.w700,
               letterSpacing: 1.5,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
@@ -190,7 +195,7 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
             style: AppTypography.bodySecondary,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 36),
+          const SizedBox(height: 32),
 
           // Large Circular PTT Button
           Center(
@@ -208,7 +213,42 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
               },
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 28),
+
+          // Direct Text Input Option (Demo & Noisy Venue Support)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.keyboard, color: AppColors.mutedText, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Or type message...',
+                      hintStyle: TextStyle(fontSize: 13, color: AppColors.mutedText),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    style: AppTypography.bodySmall,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (val) {
+                      if (val.trim().isNotEmpty) {
+                        ref.read(communicationProvider.notifier).prepareCustomText(val);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
 
           // Technical Guarantee Strip
           Container(
@@ -234,7 +274,6 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
               ],
             ),
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );
@@ -476,9 +515,13 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
     ConnectionStateModel conn,
     LanguageStateModel lang,
   ) {
-    final text = comm.currentText.isNotEmpty
-        ? comm.currentText
-        : 'Send the location to the rescue team.';
+    final text = comm.currentText.trim();
+    if (text.isEmpty) {
+      // No text captured — return to idle automatically
+      Future.microtask(() =>
+          ref.read(communicationProvider.notifier).resetToIdle());
+      return const SizedBox.shrink();
+    }
 
     return Padding(
       key: const ValueKey('ready_state'),
@@ -662,7 +705,7 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
                 _buildDiagNode(
                   Icons.cell_tower,
                   'RECEIVING DEVICE',
-                  conn.connectedDevice?.name ?? 'iTantra-Rescue-01',
+                  conn.connectedDevice?.name ?? 'COMMAND_NET (434.25 MHz)',
                   false,
                 ),
               ],
@@ -723,7 +766,7 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
               const Icon(Icons.done_all, color: AppColors.connected, size: 16),
               const SizedBox(width: 6),
               Text(
-                'Delivered to ${conn.connectedDevice?.name ?? 'iTantra-Rescue-01'}',
+                'Delivered to ${conn.connectedDevice?.name ?? 'COMMAND_NET (434.25 MHz)'}',
                 style: AppTypography.supportingSecondary.copyWith(
                   color: AppColors.connected,
                   fontWeight: FontWeight.w600,
@@ -869,7 +912,7 @@ class _CommunicationScreenState extends ConsumerState<CommunicationScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'FROM: ${msg?.sender ?? "iTantra-Rescue-01"}',
+                      'FROM: ${msg?.sender ?? "TACTICAL_PEER"}',
                       style: AppTypography.supportingSecondary.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.primaryAccent,

@@ -29,6 +29,7 @@ class AppScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: AppColors.primaryBackground,
         elevation: 0,
@@ -49,7 +50,7 @@ class AppScaffold extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            ?subtitleWidget,
+            if (subtitleWidget != null) subtitleWidget!,
           ],
         ),
         actions: actions,
@@ -62,6 +63,7 @@ class AppScaffold extends StatelessWidget {
         ),
       ),
       body: SafeArea(
+        bottom: false,
         child: body,
       ),
       bottomNavigationBar: bottomNavigationBar,

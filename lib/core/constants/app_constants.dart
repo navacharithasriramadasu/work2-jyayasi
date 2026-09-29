@@ -27,9 +27,9 @@ class AppConstants {
   static const double radiusMedium = 14.0;
   static const double radiusLarge = 18.0;
 
-  // Default Device
-  static const String defaultDeviceId = 'device-rescue-01';
-  static const String defaultDeviceName = 'iTantra-Rescue-01';
+  // Default Tactical Channel
+  static const String defaultDeviceId = 'ITANTRA-NODE-01';
+  static const String defaultDeviceName = 'COMMAND_NET (434.25 MHz)';
 
   // Supported Languages (10 Indian languages + English with native scripts)
   static const List<LanguageModel> supportedLanguages = [

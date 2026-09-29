@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../models/connection_model.dart';
@@ -54,10 +55,24 @@ class EmergencyStateModel {
 
 class EmergencyNotifier extends Notifier<EmergencyStateModel> {
   static const _uuid = Uuid();
+  StreamSubscription? _sosWsSub;
 
   @override
   EmergencyStateModel build() {
+    _initWsSosListener();
+    ref.onDispose(() => _sosWsSub?.cancel());
     return const EmergencyStateModel();
+  }
+
+  void _initWsSosListener() {
+    final ws = ref.read(webSocketServiceProvider);
+    _sosWsSub = ws.incomingSosStream.listen((sosData) {
+      final callsign = sosData['callsign'] as String? ?? 'DISPATCH';
+      simulateReceiveEmergency(
+        text: 'CRITICAL MAYDAY ALERT FROM $callsign',
+        sender: callsign,
+      );
+    });
   }
 
   void selectPreset(String text) {
@@ -74,7 +89,7 @@ class EmergencyNotifier extends Notifier<EmergencyStateModel> {
   Future<void> confirmAndSend() async {
     final lang = ref.read(languageProvider);
     final conn = ref.read(connectionProvider);
-    final remoteDevice = conn.connectedDevice?.name ?? 'iTantra-Rescue-01';
+    final remoteDevice = conn.connectedDevice?.name ?? 'TACTICAL_NET';
 
     final emergencyMessage = MessageModel(
       id: _uuid.v4(),
@@ -95,8 +110,12 @@ class EmergencyNotifier extends Notifier<EmergencyStateModel> {
 
     ref.read(messageListProvider.notifier).addMessage(emergencyMessage);
 
+    // Send via Communication Service & dedicated SOS API endpoint
     final comm = ref.read(communicationServiceProvider);
     await comm.sendMessage(emergencyMessage);
+
+    final api = ref.read(apiServiceProvider);
+    await api.sendSos(emergencyMessage);
 
     final delivered = emergencyMessage.copyWith(status: MessageStatus.delivered);
     ref.read(messageListProvider.notifier).updateStatus(

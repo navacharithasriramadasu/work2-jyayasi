@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:uuid/uuid.dart';
-import '../models/device_model.dart';
 import '../models/message_model.dart';
 
 enum MessageFilter {
@@ -10,53 +8,17 @@ enum MessageFilter {
   emergency,
 }
 
-/// In-memory repository managing communication history for iTantra.
+/// Dynamic repository managing communication history for iTantra.
 class MessageRepository {
-  final _uuid = const Uuid();
   final _messages = <MessageModel>[];
   final _streamController = StreamController<List<MessageModel>>.broadcast();
 
-  MessageRepository() {
-    _seedInitialHistory();
-  }
+  MessageRepository();
 
-  void _seedInitialHistory() {
-    final now = DateTime.now();
-    _messages.addAll([
-      MessageModel(
-        id: _uuid.v4(),
-        text: 'Medical assistance required.',
-        sender: 'iTantra-Rescue-01',
-        receiver: 'You',
-        timestamp: now.subtract(const Duration(minutes: 28)),
-        language: 'Telugu → English',
-        status: MessageStatus.heard,
-        isEmergency: true,
-        connectionType: ConnectionType.wifiDirect,
-      ),
-      MessageModel(
-        id: _uuid.v4(),
-        text: 'Location coordinates received. Unit moving to sector.',
-        sender: 'iTantra-Rescue-01',
-        receiver: 'You',
-        timestamp: now.subtract(const Duration(minutes: 47)),
-        language: 'Telugu → English',
-        status: MessageStatus.heard,
-        isEmergency: false,
-        connectionType: ConnectionType.wifiDirect,
-      ),
-      MessageModel(
-        id: _uuid.v4(),
-        text: 'Send the location to the rescue team.',
-        sender: 'You',
-        receiver: 'iTantra-Rescue-01',
-        timestamp: now.subtract(const Duration(minutes: 48)),
-        language: 'English → Telugu',
-        status: MessageStatus.delivered,
-        isEmergency: false,
-        connectionType: ConnectionType.wifiDirect,
-      ),
-    ]);
+  /// Loads real history fetched from the backend C2 gateway
+  void setRemoteHistory(List<MessageModel> remoteMessages) {
+    _messages.clear();
+    _messages.addAll(remoteMessages);
     _emit();
   }
 

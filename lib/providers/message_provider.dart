@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/config/api_config.dart';
 import '../models/message_model.dart';
 import '../repositories/message_repository.dart';
 import 'service_providers.dart';
@@ -27,7 +28,23 @@ class MessageListNotifier extends Notifier<List<MessageModel>> {
       state = messages;
     });
     ref.onDispose(sub.cancel);
+
+    // Fetch initial real message history from active channel
+    Future.microtask(() => fetchRemoteHistory());
+
     return _repository.getAll();
+  }
+
+  Future<void> fetchRemoteHistory() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final remoteMessages = await api.fetchChannelMessages(ApiConfig.activeChannelId);
+      if (remoteMessages.isNotEmpty) {
+        _repository.setRemoteHistory(remoteMessages);
+      }
+    } catch (_) {
+      // Offline fallback: keep existing in-memory messages
+    }
   }
 
   void addMessage(MessageModel message) {

@@ -46,15 +46,10 @@ class ConnectionNotifier extends Notifier<ConnectionStateModel> {
   @override
   ConnectionStateModel build() {
     _init();
-    return const ConnectionStateModel(
-      status: ConnectionStatus.connected,
-      connectedDevice: DeviceModel(
-        id: 'device-rescue-01',
-        name: 'iTantra-Rescue-01',
-        connectionType: ConnectionType.wifiDirect,
-        signalStrength: 0.95,
-        isConnected: true,
-      ),
+    final commService = ref.read(communicationServiceProvider);
+    return ConnectionStateModel(
+      status: commService.currentStatus,
+      connectedDevice: commService.connectedDevice,
     );
   }
 
@@ -87,7 +82,7 @@ class ConnectionNotifier extends Notifier<ConnectionStateModel> {
     } catch (e) {
       state = state.copyWith(
         status: ConnectionStatus.error,
-        errorMessage: 'Failed to scan devices: $e',
+        errorMessage: 'Failed to scan tactical channels: $e',
       );
     }
   }
