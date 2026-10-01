@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: itantra-backend
+    env: node
+    plan: free
+    region: ohio
+    buildCommand: "npm install && npx prisma generate && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # You will need to manually paste your NeonDB URL in the Render Dashboard
+      - key: JWT_SECRET
+        generateValue: true # Render will automatically generate a secure 256-bit random string
