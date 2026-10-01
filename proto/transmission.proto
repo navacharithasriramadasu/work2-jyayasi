@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package itantra.v1;
+
+enum PriorityLevel {
+  PRIORITY_ROUTINE = 0;
+  PRIORITY_HIGH = 1;
+  PRIORITY_EMERGENCY_SOS = 2;
+}
+
+enum RadioTransportType {
+  TRANSPORT_WIFI_DIRECT = 0;
+  TRANSPORT_BLUETOOTH_LE = 1;
+  TRANSPORT_TACTICAL_GATEWAY = 2;
+  TRANSPORT_SATELLITE = 3;
+}
+
+message GeoCoordinate {
+  double latitude = 1;
+  double longitude = 2;
+  float accuracy_meters = 3;
+}
+
+message TransceiverPacket {
+  string packet_id = 1;
+  string sender_callsign = 2;
+  string recipient_callsign = 3; // "BROADCAST_ALL" for channel-wide
+  string channel_id = 4;
+  string compact_text_payload = 5;
+  PriorityLevel priority = 6;
+  RadioTransportType transport_used = 7;
+  int64 timestamp_epoch_ms = 8;
+  GeoCoordinate location = 9;
+}
+
+message EmergencyAck {
+  string incident_id = 1;
+  string responder_callsign = 2;
+  int64 ack_timestamp = 3;
+}

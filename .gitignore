@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Backend ignore rules
+node_modules/
+.env
+dist/
+
+# Exclude reference folders
+frontend/
+team_repo/

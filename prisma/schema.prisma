@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Device {
+  id                String   @id @default(uuid())
+  callsign          String   @unique
+  deviceId          String   @unique
+  deviceFingerprint String
+  unitType          String   @default("FIELD_TRANSCEIVER")
+  isActive          Boolean  @default(true)
+  registeredAt      DateTime @default(now())
+  lastSeenAt        DateTime @default(now())
+
+  @@map("tbl_transceivers")
+}
+
+model Channel {
+  id                String   @id @default(uuid())
+  channelId         String   @unique
+  name              String
+  description       String?
+  frequencyMhz      Float
+  isEncrypted       Boolean  @default(false)
+  activeSubscribers Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  @@map("tbl_channels")
+}
+
+model Transmission {
+  id                 String   @id @default(uuid())
+  packetId           String   @unique
+  senderCallsign     String
+  recipientCallsign  String
+  channelId          String
+  compactTextPayload String
+  priority           String
+  transportUsed      String
+  timestamp          DateTime
+  latitude           Float?
+  longitude          Float?
+  syncedAt           DateTime @default(now())
+
+  @@map("tbl_transmissions")
+}
+
+model EmergencyIncident {
+  id                String   @id @default(uuid())
+  incidentId        String   @unique
+  reporterCallsign  String
+  channelId         String
+  payload           String
+  latitude          Float
+  longitude         Float
+  isActive          Boolean  @default(true)
+  declaredAt        DateTime
+  resolvedAt        DateTime?
+
+  @@map("tbl_emergency_incidents")
+}
